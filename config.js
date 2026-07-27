@@ -34,11 +34,10 @@ export const config = {
   sleepSeconds: num('SLEEP_SECONDS', 1),
 };
 
-// Build request headers. The API only accepts JSON, so both Content-Type
-// and Accept are pinned to application/json.
+// Build request headers. The API expects only Accept: application/json
+// (no Content-Type).
 export function buildHeaders() {
   const headers = {
-    'Content-Type': 'application/json',
     Accept: 'application/json',
   };
   if (config.apiKey) {
