@@ -7,17 +7,29 @@ import { config, buildHeaders, buildUrl, buildBody } from './config.js';
 const errorRate = new Rate('failed_requests');
 const latency = new Trend('request_latency', true);
 
-// Stress profile: ramp up to MAX_VUS, hold, then ramp down.
+// A duration is "zero" when empty or its numeric part is 0 (e.g. "0", "0s").
+function isZeroDuration(d) {
+  if (!d) return true;
+  const n = parseFloat(d);
+  return !Number.isFinite(n) || n === 0;
+}
+
+// Stress profile: ramp up to MAX_VUS, hold, then (optionally) ramp down.
+// Set RAMP_DOWN=0s to skip the ramp-down stage entirely.
+const stages = [
+  { duration: config.rampUp, target: config.maxVus },
+  { duration: config.sustain, target: config.maxVus },
+];
+if (!isZeroDuration(config.rampDown)) {
+  stages.push({ duration: config.rampDown, target: 0 });
+}
+
 export const options = {
   scenarios: {
     stress: {
       executor: 'ramping-vus',
       startVUs: 0,
-      stages: [
-        { duration: config.rampUp, target: config.maxVus },
-        { duration: config.sustain, target: config.maxVus },
-        { duration: config.rampDown, target: 0 },
-      ],
+      stages,
       gracefulRampDown: '10s',
     },
   },
