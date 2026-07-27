@@ -19,6 +19,8 @@ export const config = {
   method: env('HTTP_METHOD', 'GET').toUpperCase(),
   body: env('REQUEST_BODY', ''),
   authHeader: env('AUTH_HEADER', 'Authorization'),
+  // Customer identifier sent with each request.
+  cifNo: env('CIF_NO', ''),
 
   maxVus: num('MAX_VUS', 200),
   rampUp: env('RAMP_UP', '30s'),
@@ -32,9 +34,13 @@ export const config = {
   sleepSeconds: num('SLEEP_SECONDS', 1),
 };
 
-// Build request headers, attaching the API key in the configured header.
+// Build request headers. The API only accepts JSON, so both Content-Type
+// and Accept are pinned to application/json.
 export function buildHeaders() {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
   if (config.apiKey) {
     if (config.authHeader.toLowerCase() === 'authorization') {
       headers[config.authHeader] = `Bearer ${config.apiKey}`;
@@ -43,4 +49,29 @@ export function buildHeaders() {
     }
   }
   return headers;
+}
+
+// Whether this method carries a request body.
+function methodHasBody(method) {
+  return method !== 'GET' && method !== 'HEAD' && method !== 'DELETE';
+}
+
+// Resolve the final URL, appending cifNo as a query param for body-less
+// methods (GET/HEAD/DELETE).
+export function buildUrl() {
+  let url = config.apiUrl;
+  if (config.cifNo && !methodHasBody(config.method)) {
+    const sep = url.indexOf('?') === -1 ? '?' : '&';
+    url = `${url}${sep}cifNo=${encodeURIComponent(config.cifNo)}`;
+  }
+  return url;
+}
+
+// Resolve the request body. Explicit REQUEST_BODY wins; otherwise, for
+// body-carrying methods, send { cifNo } as JSON when a cifNo is configured.
+export function buildBody() {
+  if (!methodHasBody(config.method)) return null;
+  if (config.body) return config.body;
+  if (config.cifNo) return JSON.stringify({ cifNo: config.cifNo });
+  return null;
 }

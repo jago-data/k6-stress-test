@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
-import { config, buildHeaders } from './config.js';
+import { config, buildHeaders, buildUrl, buildBody } from './config.js';
 
 // Custom metrics for clearer reporting.
 const errorRate = new Rate('failed_requests');
@@ -30,7 +30,7 @@ export const options = {
 
 // One-time setup: log what we're targeting.
 export function setup() {
-  console.log(`Target:  ${config.method} ${config.apiUrl}`);
+  console.log(`Target:  ${config.method} ${buildUrl()}`);
   console.log(`Profile: 0 -> ${config.maxVus} VUs  (${config.rampUp} / ${config.sustain} / ${config.rampDown})`);
 }
 
@@ -41,13 +41,9 @@ export default function () {
     tags: { name: 'target_api' },
   };
 
-  let res;
-  const hasBody = config.body && config.method !== 'GET' && config.method !== 'HEAD';
-  if (hasBody) {
-    res = http.request(config.method, config.apiUrl, config.body, params);
-  } else {
-    res = http.request(config.method, config.apiUrl, null, params);
-  }
+  const url = buildUrl();
+  const body = buildBody();
+  const res = http.request(config.method, url, body, params);
 
   const ok = check(res, {
     'status is 2xx': (r) => r.status >= 200 && r.status < 300,
