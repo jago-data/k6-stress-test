@@ -53,5 +53,14 @@ export default function () {
   errorRate.add(!ok);
   latency.add(res.timings.duration);
 
+  // On failure, log why once per VU (status 0 = transport error: timeout,
+  // DNS, connection refused, TLS). Keeps output readable under load while
+  // still surfacing the root cause.
+  if (!ok && __ITER === 0) {
+    console.error(
+      `request failed: status=${res.status} error_code=${res.error_code} error="${res.error}"`
+    );
+  }
+
   sleep(config.sleepSeconds);
 }
