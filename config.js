@@ -27,12 +27,20 @@ export const config = {
   sustain: env('SUSTAIN', '1m'),
   rampDown: env('RAMP_DOWN', '30s'),
 
+  // Target throughput in requests/second. When > 0 the test switches to
+  // fixed-RPS mode (k6 arrival-rate executor) unless LOAD_MODE overrides.
+  targetRps: num('TARGET_RPS', 0),
+
   p95MaxMs: num('P95_MAX_MS', 500),
   maxErrorRate: num('MAX_ERROR_RATE', 0.01),
 
   requestTimeout: env('REQUEST_TIMEOUT', '30s'),
   sleepSeconds: num('SLEEP_SECONDS', 1),
 };
+
+// Load mode: 'vus' (fixed concurrent users) or 'rps' (fixed throughput).
+// Auto-selects 'rps' when TARGET_RPS is set; LOAD_MODE forces either.
+config.loadMode = env('LOAD_MODE', config.targetRps > 0 ? 'rps' : 'vus').toLowerCase();
 
 // Build request headers. The API expects only Accept: application/json
 // (no Content-Type).
